@@ -319,7 +319,7 @@ if __name__=="__main__" and debug_mode<4:
                     Ms = [BaggingClassifier(base_estimator=BernoulliNB(), n_estimators=n_estimators/10, random_state=1, n_jobs=nb_parallel).fit(x_local_train, y_local_train[:, i]) for i in range(K)]
                 else:
                     Ms = [RForestClass(n_estimators, random_state=1).fit(x_local_train, y_local_train[:, i]) for i in range(K)]
-            elif task == 'regression': 
+            elif task == 'regression':
                 if sparse:
                     M = BaggingRegressor(base_estimator=BernoulliNB(), n_estimators=n_estimators/10, random_state=1, n_jobs=nb_parallel).fit(x_local_train, y_local_train)
                 else:            
@@ -333,20 +333,20 @@ if __name__=="__main__" and debug_mode<4:
             if task == 'binary.classification':
                 y_local_valid_pred = M.predict_proba(x_local_valid)[:, 1]
             elif task == 'multiclass.classification':
-                y_local_valid_pred = np.array([M.predict_proba(x_local_valid)[:, i] for i in range(K)]).T 
+                y_local_valid_pred = M.predict_proba(x_local_valid).T
             elif task == 'multilabel.classification':
                 y_local_valid_pred = np.array([Ms[i].predict_proba(x_local_valid)[:, 1] for i in range(K)]).T
             elif task == 'regression':
                 y_local_valid_pred = M.predict(x_local_valid)
-            
+
             # Local validation
-            # x_local_valid, y_local_valid 
-            metric_type = D.info['metric']            
-            
-            vprint(verbose, 'metric_type= '+metric_type)            
+            # x_local_valid, y_local_valid
+            metric_type = D.info['metric']
+
+            vprint(verbose, 'metric_type= '+metric_type)
             vprint(verbose, y_local_valid_pred.shape)
             vprint(verbose, y_local_valid.shape)
-            
+
             if 'f1_metric' == metric_type:
                 metric = f1_metric(y_local_valid, y_local_valid_pred)
             elif 'r2_metric' == metric_type:
@@ -358,7 +358,7 @@ if __name__=="__main__" and debug_mode<4:
             elif 'pac_metric' == metric_type:
                 metric = pac_metric(y_local_valid, y_local_valid_pred)
             else:
-                vprint(verbose, 'What ?!')           
+                vprint(verbose, 'What ?!')
 
             # Make predictions
             if task == 'binary.classification':
