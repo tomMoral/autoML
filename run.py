@@ -284,26 +284,31 @@ if __name__=="__main__" and debug_mode<4:
         time_spent = 0                   # Initialize time spent learning
         time_spent_last = 0              # Initialize time spent learning
         cycle = 0
-        
-        while  cycle <= 1: # max_cycle: # In this version max_cycle = 1
+
+        # max_cycle: # In this version max_cycle = 1
+        while cycle <= 1:
             begin = time.time()
-            vprint( verbose,  "=========== " + basename.capitalize() +" Training cycle " + str(cycle) +" ================") 
-            n_estimators = 50 # In clycle 0 we try with just 50 estimators to probe the duration
-            if cycle==1:
-                n_estimators = int((np.floor(time_budget / time_spent_last) - 1 ) * 50) # In the next cycle we use the remaining time
-                if n_estimators <=0: break # IG
-            vprint( verbose,  "[+] Number of estimators: %d" % (n_estimators))   
-            
+            vprint(verbose,  "=========== " + basename.capitalize() +
+                   " Training cycle " + str(cycle) + " ================")
+            # In clycle 0 we try with just 50 estimators to probe the duration
+            n_estimators = 50
+            if cycle == 1:
+                # In the next cycle we use the remaining time
+                n_estimators = int((np.floor(time_budget/time_spent_last)-1)*50)
+                if n_estimators <= 0:
+                    break  # IG
+            vprint(verbose, "[+] Number of estimators: %d" % (n_estimators))
+
             K = D.info['target_num']
             sparse = False
             if D.info['is_sparse'] == 1:
                 sparse = True
 
             task = D.info['task']
-            seed = 1 # seend for the random number generator
+            # send for the random number generator
+            seed = 1
             X_train = D.data['X_train']
             y_train = D.data['Y_train']
-
 
             nb_parallel = 6
             x_local_train, x_local_valid, y_local_train, y_local_valid = train_test_split(D.data['X_train'], D.data['Y_train'], test_size=0.2, random_state=1)
@@ -316,18 +321,31 @@ if __name__=="__main__" and debug_mode<4:
                     M = RForestClass(n_estimators, random_state=1).fit(x_local_train, y_local_train)
             elif task == 'multilabel.clmetric_typeassification':
                 if sparse:
-                    Ms = [BaggingClassifier(base_estimator=BernoulliNB(), n_estimators=n_estimators/10, random_state=1, n_jobs=nb_parallel).fit(x_local_train, y_local_train[:, i]) for i in range(K)]
+                    Ms = [BaggingClassifier(base_estimator=BernoulliNB(),
+                                            n_estimators=n_estimators/10,
+                                            random_state=1, n_jobs=nb_parallel
+                                            ).fit(x_local_train,
+                                                  y_local_train[:, i])
+                          for i in range(K)]
                 else:
-                    Ms = [RForestClass(n_estimators, random_state=1).fit(x_local_train, y_local_train[:, i]) for i in range(K)]
+                    Ms = [RForestClass(n_estimators, random_state=1
+                                       ).fit(x_local_train, y_local_train[:, i])
+                          for i in range(K)]
             elif task == 'regression':
                 if sparse:
-                    M = BaggingRegressor(base_estimator=BernoulliNB(), n_estimators=n_estimators/10, random_state=1, n_jobs=nb_parallel).fit(x_local_train, y_local_train)
-                else:            
-                    M = RForestRegress(n_estimators, random_state=1, n_jobs=nb_parallel).fit(x_local_train, y_local_train)
+                    M = BaggingRegressor(base_estimator=BernoulliNB(),
+                                         n_estimators=n_estimators/10,
+                                         random_state=1, n_jobs=nb_parallel
+                                         ).fit(x_local_train, y_local_train)
+                else:
+                    M = RForestRegress(n_estimators, random_state=1,
+                                       n_jobs=nb_parallel
+                                       ).fit(x_local_train, y_local_train)
             else:
-                vprint( verbose,  "[-] task not recognized")
-                break         
-            vprint( verbose,  "[+] Fitting success, time spent so far %5.2f sec" % (time.time() - start))
+                vprint(verbose, "[-] task not recognized")
+                break
+            vprint(verbose, "[+] Fitting success, time spent so far %5.2f sec"
+                   % (time.time() - start))
 
             # Make predictions on local validation set
             if task == 'binary.classification':
@@ -342,10 +360,6 @@ if __name__=="__main__" and debug_mode<4:
             # Local validation
             # x_local_valid, y_local_valid
             metric_type = D.info['metric']
-
-            vprint(verbose, 'metric_type= '+metric_type)
-            vprint(verbose, y_local_valid_pred.shape)
-            vprint(verbose, y_local_valid.shape)
 
             if 'f1_metric' == metric_type:
                 metric = f1_metric(y_local_valid, y_local_valid_pred)
@@ -363,14 +377,14 @@ if __name__=="__main__" and debug_mode<4:
             # Make predictions
             if task == 'binary.classification':
                 Y_valid = M.predict_proba(D.data['X_valid'])[:, 1]
-                Y_test =  M.predict_proba(D.data['X_test'])[:, 1]
+                Y_test = M.predict_proba(D.data['X_test'])[:, 1]
             elif task == 'multiclass.classification':
-                Y_valid = np.array([M.predict_proba(D.data['X_valid'])[:, i] for i in range(K)]).T 
-                Y_test =  np.array([M.predict_proba(D.data['X_test'])[:, i] for i in range(K)]).T 
+                Y_valid = M.predict_proba(D.data['X_valid']).T
+                Y_test = M.predict_proba(D.data['X_test']).T
             elif task == 'multilabel.classification':
                 Y_valid = np.array([Ms[i].predict_proba(D.data['X_valid'])[:, 1] for i in range(K)]).T
-                Y_test =  np.array([Ms[i].predict_proba(D.data['X_valid'])[:, 1] for i in range(K)]).T
-            elif task == 'regression':    
+                Y_test = np.array([Ms[i].predict_proba(D.data['X_valid'])[:, 1] for i in range(K)]).T
+            elif task == 'regression':
                 Y_valid = M.predict(D.data['X_valid'])
                 Y_test = M.predict(D.data['X_test'])
 
