@@ -168,14 +168,14 @@ from sklearn.naive_bayes import BernoulliNB
 running_on_codalab = False
 run_dir = os.path.abspath(".")
 codalab_run_dir = os.path.join(run_dir, "program")
-if os.path.isdir(codalab_run_dir): 
+if os.path.isdir(codalab_run_dir):
     run_dir=codalab_run_dir
     running_on_codalab = True
     print "Running on Codalab!"
 lib_dir = os.path.join(run_dir, "lib")
 res_dir = os.path.join(run_dir, "res")
 
-# Our libraries  
+# Our libraries
 path.append (run_dir)
 path.append (lib_dir)
 import data_io                       # general purpose input/output functions
@@ -199,22 +199,22 @@ if __name__=="__main__" and debug_mode<4:
         output_dir = default_output_dir
     else:
         input_dir = argv[1]
-        output_dir = os.path.abspath(argv[2]); 
-    # Move old results and create a new output directory 
+        output_dir = os.path.abspath(argv[2])
+    # Move old results and create a new output directory
     if not(running_on_codalab):
-        data_io.mvdir(output_dir, '../'+output_dir+'_'+the_date) 
-    data_io.mkdir(output_dir) 
-    
+        data_io.mvdir(output_dir, '../'+output_dir+'_'+the_date)
+    data_io.mkdir(output_dir)
+
     #### INVENTORY DATA (and sort dataset names alphabetically)
     datanames = data_io.inventory_data(input_dir)
-    
+
     #### DEBUG MODE: Show dataset list and STOP
     if debug_mode>=3:
         data_io.show_io(input_dir, output_dir)
-        print('\n****** Sample code version ' + str(version) + ' ******\n\n' + '========== DATASETS ==========\n')          
+        print('\n****** Sample code version ' + str(version) + ' ******\n\n' + '========== DATASETS ==========\n')
         data_io.write_list(datanames)      
         datanames = [] # Do not proceed with learning and testing
-        
+
     # ==================== @RESULT SUBMISSION (KEEP THIS) =====================
     # Always keep this code to enable result submission of pre-calculated results
     # deposited in the res/ subdirectory.
@@ -238,19 +238,19 @@ if __name__=="__main__" and debug_mode<4:
         vprint( verbose,  "************************************************")
         vprint( verbose,  "******** Processing dataset " + basename.capitalize() + " ********")
         vprint( verbose,  "************************************************")
-        
+
         # ======== Learning on a time budget:
         # Keep track of time not to exceed your time budget. Time spent to inventory data neglected.
         start = time.time()
-        
+
         # ======== Creating a data object with data, informations about it
         vprint( verbose,  "======== Reading and converting data ==========")
         D = DataManager(basename, input_dir, replace_missing=True, filter_features=True, verbose=verbose)
         print D
-        
+
         # ======== Keeping track of time
-        if debug_mode<1:
-            time_budget = D.info['time_budget']        # <== HERE IS THE TIME BUDGET!
+        if debug_mode < 1:
+            time_budget = D.info['time_budget']   # <== HERE IS THE TIME BUDGET!
         else:
             time_budget = max_time
         overall_time_budget = overall_time_budget + time_budget
@@ -260,17 +260,17 @@ if __name__=="__main__" and debug_mode<4:
             vprint( verbose,  "[-] Sorry, time budget exceeded, skipping this task")
             execution_success = False
             continue
-        
+
         # ========= Creating a model, knowing its assigned task from D.info['task'].
         # The model can also select its hyper-parameters based on other elements of info.  
         # vprint( verbose,  "======== Creating model ==========")
         # M = MyAutoML(D.info, verbose, debug_mode)
         # print M
         # The code above corresponds to the original starting kit
-        
+
         # ========= Iterating over learning cycles and keeping track of time
         time_spent = time.time() - start
-        vprint( verbose,  "[+] Remaining time after building model %5.2f sec" % (time_budget-time_spent))        
+        vprint( verbose,  "[+] Remaining time after building model %5.2f sec" % (time_budget-time_spent))
         if time_spent >= time_budget:
             vprint( verbose,  "[-] Sorry, time budget exceeded, skipping this task")
             execution_success = False
@@ -295,10 +295,13 @@ if __name__=="__main__" and debug_mode<4:
             sparse = False
             if D.info['is_sparse'] == 1:
                 sparse = True
-           
-                
+
+
             task = D.info['task']
             seed = 1 # seend for the random number generator
+            X_train = D.data['X_train']
+            y_train = D.data['Y_train']
+            print(D.data.keys())
 
             nb_parallel = 6
             if task == 'binary.classification' or task == 'multiclass.classification':
