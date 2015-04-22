@@ -184,6 +184,7 @@ from data_manager import DataManager # load/save data and get info about them
 from models import MyAutoML          # example model from scikit learn (unused in this version)
 
 from sklearn.cross_validation import *
+from libscores import *
 
 if debug_mode >= 4 or running_on_codalab: # Show library version and directory structure
     data_io.show_version()
@@ -338,22 +339,26 @@ if __name__=="__main__" and debug_mode<4:
             elif task == 'regression':
                 y_local_valid_pred = M.predict(x_local_valid)
             
-   
             # Local validation
             # x_local_valid, y_local_valid 
             metric_type = D.info['metric']            
+            
+            vprint(verbose, 'metric_type= '+metric_type)            
+            vprint(verbose, y_local_valid_pred.shape)
+            vprint(verbose, y_local_valid.shape)
+            
             if 'f1_metric' == metric_type:
-                vprint(verbose, 'f1_metric')
+                metric = f1_metric(y_local_valid, y_local_valid_pred)
             elif 'r2_metric' == metric_type:
-                vprint(verbose, 'r2_metric')
+                metric = r2_metric(y_local_valid, y_local_valid_pred)
             elif 'bac_metric' == metric_type:
-                vprint(verbose, 'bac_metric')
+                metric = bac_metric(y_local_valid, y_local_valid_pred)
             elif 'auc_metric' == metric_type:
-                vprint(verbose, 'auc_metric')
+                metric = auc_metric(y_local_valid, y_local_valid_pred)
             elif 'pac_metric' == metric_type:
-                vprint(verbose, 'pac_metric')
+                metric = pac_metric(y_local_valid, y_local_valid_pred)
             else:
-                vprint(verbose, 'What ?!')            
+                vprint(verbose, 'What ?!')           
 
             # Make predictions
             if task == 'binary.classification':
