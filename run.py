@@ -112,7 +112,7 @@ verbose = True # outputs messages to stdout and stderr for debug purposes
 # 2: run everything, but do not train, generate random outputs in max_time
 # 3: stop before the loop on datasets
 # 4: just list the directories and program version
-debug_mode = 0
+debug_mode = 1
 
 # Time budget
 #############
@@ -120,7 +120,7 @@ debug_mode = 0
 # The code should keep track of time spent and NOT exceed the time limit 
 # in the dataset "info" file, stored in D.info['time_budget'], see code below.
 # If debug >=1, you can decrease the maximum time (in sec) with this variable:
-max_time = 90
+max_time = 15
 
 # Maximum number of cycles
 ##########################
@@ -169,7 +169,7 @@ running_on_codalab = False
 run_dir = os.path.abspath(".")
 codalab_run_dir = os.path.join(run_dir, "program")
 if os.path.isdir(codalab_run_dir):
-    run_dir=codalab_run_dir
+    run_dir = codalab_run_dir
     running_on_codalab = True
     print "Running on Codalab!"
 lib_dir = os.path.join(run_dir, "lib")
@@ -194,7 +194,7 @@ if debug_mode >= 4 or running_on_codalab: # Show library version and directory s
 if __name__=="__main__" and debug_mode<4:   
     #### Check whether everything went well (no time exceeded)
     execution_success = True
-    
+
     #### INPUT/OUTPUT: Get input and output directory names
     if len(argv)==1: # Use the default input and output directories if no arguments are provided
         input_dir = default_input_dir
@@ -246,7 +246,7 @@ if __name__=="__main__" and debug_mode<4:
         start = time.time()
 
         # ======== Creating a data object with data, informations about it
-        vprint( verbose,  "======== Reading and converting data ==========")
+        vprint(verbose,  "======== Reading and converting data ==========")
         D = DataManager(basename, input_dir, replace_missing=True, filter_features=True, verbose=verbose)
         print D
 
@@ -257,9 +257,9 @@ if __name__=="__main__" and debug_mode<4:
             time_budget = max_time
         overall_time_budget = overall_time_budget + time_budget
         time_spent = time.time() - start
-        vprint( verbose,  "[+] Remaining time after reading data %5.2f sec" % (time_budget-time_spent))
+        vprint(verbose,  "[+] Remaining time after reading data %5.2f sec" % (time_budget-time_spent))
         if time_spent >= time_budget:
-            vprint( verbose,  "[-] Sorry, time budget exceeded, skipping this task")
+            vprint(verbose,  "[-] Sorry, time budget exceeded, skipping this task")
             execution_success = False
             continue
 
@@ -302,12 +302,13 @@ if __name__=="__main__" and debug_mode<4:
             seed = 1 # seend for the random number generator
             X_train = D.data['X_train']
             y_train = D.data['Y_train']
-            print(D.data.keys())
+
 
             nb_parallel = 6
             x_local_train, x_local_valid, y_local_train, y_local_valid = train_test_split(D.data['X_train'], D.data['Y_train'], test_size=0.2, random_state=1)
 
-            if task == 'binary.classification' or task == 'multiclass.classification':
+            if (task == 'binary.classification' or
+                    task == 'multiclass.classification'):
                 if sparse:
                     M = BaggingClassifier(base_estimator=BernoulliNB(), n_estimators=n_estimators/10, random_state=1, n_jobs=nb_parallel).fit(x_local_train, y_local_train)
                 else:
@@ -317,7 +318,7 @@ if __name__=="__main__" and debug_mode<4:
                     Ms = [BaggingClassifier(base_estimator=BernoulliNB(), n_estimators=n_estimators/10, random_state=1, n_jobs=nb_parallel).fit(x_local_train, y_local_train[:, i]) for i in range(K)]
                 else:
                     Ms = [RForestClass(n_estimators, random_state=1).fit(x_local_train, y_local_train[:, i]) for i in range(K)]
-            elif task == 'regression':  
+            elif task == 'regression': 
                 if sparse:
                     M = BaggingRegressor(base_estimator=BernoulliNB(), n_estimators=n_estimators/10, random_state=1, n_jobs=nb_parallel).fit(x_local_train, y_local_train)
                 else:            
@@ -326,7 +327,7 @@ if __name__=="__main__" and debug_mode<4:
                 vprint( verbose,  "[-] task not recognized")
                 break         
             vprint( verbose,  "[+] Fitting success, time spent so far %5.2f sec" % (time.time() - start))
-                
+
             # Make predictions on local validation set
             if task == 'binary.classification':
                 y_local_valid_pred = M.predict_proba(x_local_valid)[:, 1]
@@ -354,8 +355,6 @@ if __name__=="__main__" and debug_mode<4:
             else:
                 vprint(verbose, 'What ?!')            
 
-            
-            
             # Make predictions
             if task == 'binary.classification':
                 Y_valid = M.predict_proba(D.data['X_valid'])[:, 1]
@@ -369,8 +368,8 @@ if __name__=="__main__" and debug_mode<4:
             elif task == 'regression':    
                 Y_valid = M.predict(D.data['X_valid'])
                 Y_test = M.predict(D.data['X_test'])
-            
-            
+
+
             if task == 'multilabel.classification' or task == 'multiclass.classification':
                 if sparse:
                     eps = 0.001
@@ -382,37 +381,42 @@ if __name__=="__main__" and debug_mode<4:
                         pos = np.argmax(Y_test[i])
                         Y_test[i] += eps
                         Y_test[i][pos] -= K * eps
-                    
-            
-            vprint( verbose,  "[+] Prediction success, time spent so far %5.2f sec" % (time.time() - start))
+
+
+            vprint(verbose, "[+] Prediction success, time spent so far %5.2f sec" % (time.time() - start))
             # Write results
             filename_valid = basename + '_valid_' + str(cycle).zfill(3) + '.predict'
             data_io.write(os.path.join(output_dir,filename_valid), Y_valid)
             filename_test = basename + '_test_' + str(cycle).zfill(3) + '.predict'
             data_io.write(os.path.join(output_dir,filename_test), Y_test)
-            vprint( verbose,  "[+] Results saved, time spent so far %5.2f sec" % (time.time() - start))         
+            vprint(verbose,  "[+] Results saved, time spent so far %5.2f sec" % (time.time() - start))         
             time_spent = time.time() - start 
-            vprint( verbose,  "[+] End cycle, remaining time %5.2f sec" % (time_budget-time_spent))
+            vprint(verbose,  "[+] End cycle, remaining time %5.2f sec" % (time_budget-time_spent))
             cycle += 1
             time_spent_last = time.time() - begin
-            time_budget = time_budget - time_spent_last # Remove time spent so far
-            
+            # Remove time spent so far
+            time_budget = time_budget - time_spent_last
+
     if zipme and not(running_on_codalab):
-        vprint( verbose,  "========= Zipping this directory to prepare for submit ==============")
+        vprint(verbose, "========= Zipping this directory to "
+                        "prepare for submit ==============")
         data_io.zipdir(submission_filename + '.zip', ".")
-        
+
     overall_time_spent = time.time() - overall_start
     if execution_success:
-        vprint( verbose,  "[+] Done")
-        vprint( verbose,  "[+] Overall time spent %5.2f sec " % overall_time_spent + "::  Overall time budget %5.2f sec" % overall_time_budget)
+        vprint(verbose,  "[+] Done")
+        vprint(verbose,  "[+] Overall time spent %5.2f sec "
+               % overall_time_spent + "::  Overall time budget %5.2f sec"
+               % overall_time_budget)
     else:
-        vprint( verbose,  "[-] Done, but some tasks aborted because time limit exceeded")
-        vprint( verbose,  "[-] Overall time spent %5.2f sec " % overall_time_spent + " > Overall time budget %5.2f sec" % overall_time_budget)
-              
-    if running_on_codalab: 
+        vprint(verbose, "[-] Done, but some tasks aborted "
+               "because time limit exceeded")
+        vprint(verbose, "[-] Overall time spent %5.2f sec "
+               % overall_time_spent + " > Overall time budget %5.2f sec"
+               % overall_time_budget)
+
+    if running_on_codalab:
         if execution_success:
             exit(0)
         else:
             exit(1)
-
-
