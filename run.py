@@ -300,22 +300,23 @@ if __name__=="__main__" and debug_mode<4:
             task = D.info['task']
             seed = 1 # seend for the random number generator
 
+            nb_parallel = 6
             if task == 'binary.classification' or task == 'multiclass.classification':
                 if sparse:
                     M = BaggingClassifier(base_estimator=BernoulliNB(), n_estimators=n_estimators/10,
-                                          n_jobs=6, random_state=1).fit(D.data['X_train'], D.data['Y_train'])
+                                          n_jobs=nb_parallel, random_state=1).fit(D.data['X_train'], D.data['Y_train'])
                 else:
-                    M = RForestClass(n_estimators, n_jobs=6, random_state=1).fit(D.data['X_train'], D.data['Y_train'])
+                    M = RForestClass(n_estimators, n_jobs=nb_parallel, random_state=1).fit(D.data['X_train'], D.data['Y_train'])
             elif task == 'multilabel.classification':
                 if sparse:
-                    Ms = [BaggingClassifier(base_estimator=BernoulliNB(), n_jobs=6, n_estimators=n_estimators/10, random_state=1).fit(D.data['X_train'], D.data['Y_train'][:, i]) for i in range(K)]
+                    Ms = [BaggingClassifier(base_estimator=BernoulliNB(), n_jobs=nb_parallel, n_estimators=n_estimators/10, random_state=1).fit(D.data['X_train'], D.data['Y_train'][:, i]) for i in range(K)]
                 else:
-                    Ms = [RForestClass(n_estimators, n_jobs=6, random_state=1).fit(D.data['X_train'], D.data['Y_train'][:, i]) for i in range(K)]
+                    Ms = [RForestClass(n_estimators, n_jobs=nb_parallel, random_state=1).fit(D.data['X_train'], D.data['Y_train'][:, i]) for i in range(K)]
             elif task == 'regression':  
                 if sparse:
-                    M = BaggingRegressor(base_estimator=BernoulliNB(), n_jobs=6, n_estimators=n_estimators/10, random_state=1).fit(D.data['X_train'], D.data['Y_train'])
+                    M = BaggingRegressor(base_estimator=BernoulliNB(), n_jobs=nb_parallel, n_estimators=n_estimators/10, random_state=1).fit(D.data['X_train'], D.data['Y_train'])
                 else:            
-                    M = RForestRegress(n_estimators, n_jobs=6, random_state=1).fit(D.data['X_train'], D.data['Y_train'])
+                    M = RForestRegress(n_estimators, n_jobs=nb_parallel, random_state=1).fit(D.data['X_train'], D.data['Y_train'])
             else:
                 vprint( verbose,  "[-] task not recognized")
                 break         
