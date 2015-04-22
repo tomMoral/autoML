@@ -183,6 +183,8 @@ from data_io import vprint           # print only in verbose mode
 from data_manager import DataManager # load/save data and get info about them
 from models import MyAutoML          # example model from scikit learn (unused in this version)
 
+from sklearn.cross_validation import *
+
 if debug_mode >= 4 or running_on_codalab: # Show library version and directory structure
     data_io.show_version()
     data_io.show_dir(run_dir)
@@ -296,7 +298,6 @@ if __name__=="__main__" and debug_mode<4:
             if D.info['is_sparse'] == 1:
                 sparse = True
 
-
             task = D.info['task']
             seed = 1 # seend for the random number generator
             X_train = D.data['X_train']
@@ -304,26 +305,55 @@ if __name__=="__main__" and debug_mode<4:
             print(D.data.keys())
 
             nb_parallel = 6
+            x_local_train, x_local_valid, y_local_train, y_local_valid = train_test_split(D.data['X_train'], D.data['Y_train'], test_size=0.2, random_state=1)
+
             if task == 'binary.classification' or task == 'multiclass.classification':
                 if sparse:
-                    M = BaggingClassifier(base_estimator=BernoulliNB(), n_estimators=n_estimators/10,
-                                          n_jobs=nb_parallel, random_state=1).fit(D.data['X_train'], D.data['Y_train'])
+                    M = BaggingClassifier(base_estimator=BernoulliNB(), n_estimators=n_estimators/10, random_state=1, n_jobs=nb_parallel).fit(x_local_train, y_local_train)
                 else:
-                    M = RForestClass(n_estimators, n_jobs=nb_parallel, random_state=1).fit(D.data['X_train'], D.data['Y_train'])
-            elif task == 'multilabel.classification':
+                    M = RForestClass(n_estimators, random_state=1).fit(x_local_train, y_local_train)
+            elif task == 'multilabel.clmetric_typeassification':
                 if sparse:
-                    Ms = [BaggingClassifier(base_estimator=BernoulliNB(), n_jobs=nb_parallel, n_estimators=n_estimators/10, random_state=1).fit(D.data['X_train'], D.data['Y_train'][:, i]) for i in range(K)]
+                    Ms = [BaggingClassifier(base_estimator=BernoulliNB(), n_estimators=n_estimators/10, random_state=1, n_jobs=nb_parallel).fit(x_local_train, y_local_train[:, i]) for i in range(K)]
                 else:
-                    Ms = [RForestClass(n_estimators, n_jobs=nb_parallel, random_state=1).fit(D.data['X_train'], D.data['Y_train'][:, i]) for i in range(K)]
+                    Ms = [RForestClass(n_estimators, random_state=1).fit(x_local_train, y_local_train[:, i]) for i in range(K)]
             elif task == 'regression':  
                 if sparse:
-                    M = BaggingRegressor(base_estimator=BernoulliNB(), n_jobs=nb_parallel, n_estimators=n_estimators/10, random_state=1).fit(D.data['X_train'], D.data['Y_train'])
+                    M = BaggingRegressor(base_estimator=BernoulliNB(), n_estimators=n_estimators/10, random_state=1, n_jobs=nb_parallel).fit(x_local_train, y_local_train)
                 else:            
-                    M = RForestRegress(n_estimators, n_jobs=nb_parallel, random_state=1).fit(D.data['X_train'], D.data['Y_train'])
+                    M = RForestRegress(n_estimators, random_state=1, n_jobs=nb_parallel).fit(x_local_train, y_local_train)
             else:
                 vprint( verbose,  "[-] task not recognized")
                 break         
             vprint( verbose,  "[+] Fitting success, time spent so far %5.2f sec" % (time.time() - start))
+                
+            # Make predictions on local validation set
+            if task == 'binary.classification':
+                y_local_valid_pred = M.predict_proba(x_local_valid)[:, 1]
+            elif task == 'multiclass.classification':
+                y_local_valid_pred = np.array([M.predict_proba(x_local_valid)[:, i] for i in range(K)]).T 
+            elif task == 'multilabel.classification':
+                y_local_valid_pred = np.array([Ms[i].predict_proba(x_local_valid)[:, 1] for i in range(K)]).T
+            elif task == 'regression':
+                y_local_valid_pred = M.predict(x_local_valid)
+            
+   
+            # Local validation
+            # x_local_valid, y_local_valid 
+            metric_type = D.info['metric']            
+            if 'f1_metric' == metric_type:
+                vprint(verbose, 'f1_metric')
+            elif 'r2_metric' == metric_type:
+                vprint(verbose, 'r2_metric')
+            elif 'bac_metric' == metric_type:
+                vprint(verbose, 'bac_metric')
+            elif 'auc_metric' == metric_type:
+                vprint(verbose, 'auc_metric')
+            elif 'pac_metric' == metric_type:
+                vprint(verbose, 'pac_metric')
+            else:
+                vprint(verbose, 'What ?!')            
+
             
             
             # Make predictions
